@@ -1,0 +1,37 @@
+Kiddo Runner: Math & Words — Asset Credits
+
+UI Icons:
+Source: Kenney Game Icons / Kenney UI Pack
+License: CC0 1.0 Universal
+URL: https://kenney.nl/assets
+
+Audio:
+coin.wav
+Source: [paste source name]
+License: [CC0 / Pixabay License / CC BY]
+URL: [paste asset URL]
+
+correct.wav
+Source: [paste source name]
+License: [CC0 / Pixabay License / CC BY]
+URL: [paste asset URL]
+
+wrong.wav
+Source: [paste source name]
+License: [CC0 / Pixabay License / CC BY]
+URL: [paste asset URL]
+
+level_complete.wav
+Source: [paste source name]
+License: [CC0 / Pixabay License / CC BY]
+URL: [paste asset URL]
+
+button_tap.wav
+Source: [paste source name]
+License: [CC0 / Pixabay License / CC BY]
+URL: [paste asset URL]
+
+background_music.mp3
+Source: [paste source name]
+License: [CC0 / Pixabay License / CC BY]
+URL: [paste asset URL]
