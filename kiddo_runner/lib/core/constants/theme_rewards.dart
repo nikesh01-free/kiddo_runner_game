@@ -1,0 +1,95 @@
+import 'package:flutter/material.dart';
+import 'package:kiddo_runner/models/theme_reward.dart';
+
+class ThemeRewards {
+  static const List<ThemeReward> themes = [
+    ThemeReward(
+      key: 'blue',
+      name: 'Sky Blue',
+      description: 'Classic bright runner theme',
+      unlockType: ThemeUnlockType.defaultUnlocked,
+      unlockValue: 0,
+      primaryColor: Color(0xFF0284C7),
+      secondaryColor: Color(0xFFBAE6FD),
+      backgroundColor: Color(0xFFEFF8FF),
+      laneColor: Color(0xFFE2E8F0),
+      iconEmoji: '☁️',
+    ),
+    ThemeReward(
+      key: 'candy',
+      name: 'Candy Land',
+      description: 'Sweet pink candy world',
+      unlockType: ThemeUnlockType.level,
+      unlockValue: 1,
+      primaryColor: Color(0xFFDB2777),
+      secondaryColor: Color(0xFFFCE7F3),
+      backgroundColor: Color(0xFFFFF1F2),
+      laneColor: Color(0xFFFFE4E6),
+      iconEmoji: '🍭',
+    ),
+    ThemeReward(
+      key: 'space',
+      name: 'Space Run',
+      description: 'Dark space world with stars',
+      unlockType: ThemeUnlockType.level,
+      unlockValue: 3,
+      primaryColor: Color(0xFF4F46E5),
+      secondaryColor: Color(0xFFE0E7FF),
+      backgroundColor: Color(0xFF0F172A),
+      laneColor: Color(0xFF1E293B),
+      iconEmoji: '🚀',
+    ),
+    ThemeReward(
+      key: 'dino',
+      name: 'Dino Jungle',
+      description: 'Green jungle world with dino vibes',
+      unlockType: ThemeUnlockType.level,
+      unlockValue: 5,
+      primaryColor: Color(0xFF059669),
+      secondaryColor: Color(0xFFD1FAE5),
+      backgroundColor: Color(0xFFF0FDF4),
+      laneColor: Color(0xFFDCFCE7),
+      iconEmoji: '🦖',
+    ),
+    ThemeReward(
+      key: 'ocean',
+      name: 'Ocean Adventure',
+      description: 'Blue ocean world with bubbles',
+      unlockType: ThemeUnlockType.level,
+      unlockValue: 7,
+      primaryColor: Color(0xFF0891B2),
+      secondaryColor: Color(0xFFCFFAFE),
+      backgroundColor: Color(0xFFECFEFF),
+      laneColor: Color(0xFFE0F2FE),
+      iconEmoji: '🌊',
+    ),
+    ThemeReward(
+      key: 'robot',
+      name: 'Robot Factory',
+      description: 'Cool grey tech world',
+      unlockType: ThemeUnlockType.level,
+      unlockValue: 10,
+      primaryColor: Color(0xFF4B5563),
+      secondaryColor: Color(0xFFE5E7EB),
+      backgroundColor: Color(0xFFF3F4F6),
+      laneColor: Color(0xFFD1D5DB),
+      iconEmoji: '🤖',
+    ),
+    ThemeReward(
+      key: 'rainbow',
+      name: 'Rainbow Magic',
+      description: 'Colorful rainbow glow theme',
+      unlockType: ThemeUnlockType.coins,
+      unlockValue: 500,
+      primaryColor: Color(0xFF7C3AED),
+      secondaryColor: Color(0xFFDDD6FE),
+      backgroundColor: Color(0xFFF5F3FF),
+      laneColor: Color(0xFFEDE9FE),
+      iconEmoji: '🌈',
+    ),
+  ];
+
+  static ThemeReward getTheme(String key) {
+    return themes.firstWhere((t) => t.key == key, orElse: () => themes.first);
+  }
+}

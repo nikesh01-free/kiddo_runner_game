@@ -226,6 +226,19 @@ class ProfileProvider extends ChangeNotifier {
       await StorageManager.saveChildProfile(p);
     }
 
+    // --- Theme Unlocks ---
+    if (levelNumber >= 1) await StorageManager.unlockTheme('candy');
+    if (levelNumber >= 3) await StorageManager.unlockTheme('space');
+    if (levelNumber >= 5) await StorageManager.unlockTheme('dino');
+    if (levelNumber >= 7) await StorageManager.unlockTheme('ocean');
+    if (levelNumber >= 10) await StorageManager.unlockTheme('robot');
+
+    final updatedFinalP = StorageManager.getChildProfile() ?? finalP;
+    final streak = StorageManager.playStreak;
+    if (streak >= 7 || updatedFinalP.totalCoins >= 500) {
+      await StorageManager.unlockTheme('rainbow');
+    }
+
     loadProfile();
   }
 

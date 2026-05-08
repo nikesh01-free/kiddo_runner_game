@@ -111,6 +111,12 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 16),
+              const Text(
+                '🏃‍♂️ 🌟 🏆 ⭐ 🎯',
+                style: TextStyle(fontSize: 24),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 48),
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -121,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary500,
+                        AppColors.secondary500,
                       ),
                     ),
                   ),

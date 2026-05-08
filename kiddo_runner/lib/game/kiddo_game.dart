@@ -7,6 +7,8 @@ import 'dart:math';
 import '../core/storage/storage_manager.dart';
 import '../core/storage/music_manager.dart';
 import '../models/question.dart';
+import '../models/theme_reward.dart';
+import '../core/constants/theme_rewards.dart';
 import '../screens/result_screen.dart';
 import '../screens/level_map_screen.dart';
 import 'services/question_service.dart';
@@ -88,8 +90,11 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
   double _countdownTimer = 3.0; // pre-run countdown
   bool isPaused = false;
 
-  // Cosmetic & trail histories
+  Sprite? hatSprite;
+
+  // Trail state
   final List<Offset> _trailPositions = [];
+  final Paint _trailPaint = Paint()..style = PaintingStyle.fill;
   String activeHat = 'none';
   String activeTrail = 'none';
   String activeTheme = 'blue';
@@ -110,7 +115,8 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
   final Paint _eyePaint = Paint()..color = Colors.white;
   final Paint _pupilPaint = Paint()..color = Colors.black;
   final Paint _hatPaint = Paint();
-  final Paint _trailPaint = Paint();
+
+
   final TextPainter _textPainter = TextPainter(
     textDirection: TextDirection.ltr,
   );
@@ -125,6 +131,18 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
         n.contains('spell');
   }
 
+  // Character Animation
+  List<Sprite> runSprites = [];
+  Sprite? jumpSprite;
+  Sprite? hurtSprite;
+  Sprite? idleSprite;
+  double _animTimer = 0;
+  int _animFrame = 0;
+
+  bool isJumping = false;
+  double jumpVelocity = 0;
+  double characterYOffset = 0;
+
   @override
   Future<void> onLoad() async {
     super.onLoad();
@@ -136,17 +154,75 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
     activeHat = StorageManager.equippedHat;
     activeTrail = StorageManager.equippedTrail;
     activeTheme = StorageManager.equippedTheme;
+    debugPrint(
+      'KiddoGame Cosmetics: Hat=$activeHat, Trail=$activeTrail, Theme=$activeTheme',
+    );
 
     final profile = StorageManager.getChildProfile();
-    final imagePath =
-        profile?.characterImagePath ??
-        'assets/images/characters/kenney_toon-characters/Male adventurer/PNG/Poses HD/character_maleAdventurer_idle.png';
+    final characterId = profile?.selectedCharacterId ?? 'boy';
+
+    String baseFolder = 'Male adventurer';
+    String filePrefix = 'character_maleAdventurer';
+
+    if (characterId == 'girl') {
+      baseFolder = 'Female adventurer';
+      filePrefix = 'character_femaleAdventurer';
+    } else if (characterId == 'ninja_outfit') {
+      baseFolder = 'Male person';
+      filePrefix = 'character_malePerson';
+    } else if (characterId == 'super_star') {
+      baseFolder = 'Robot';
+      filePrefix = 'character_robot';
+    } else if (characterId == 'zombie') {
+      baseFolder = 'Zombie';
+      filePrefix = 'character_zombie';
+    } else if (characterId == 'female_person') {
+      baseFolder = 'Female person';
+      filePrefix = 'character_femalePerson';
+    }
+
+    final basePath =
+        'characters/kenney_toon-characters/$baseFolder/PNG/Poses HD/';
+
+    // Load Hat Sprite if equipped
+    if (activeHat != 'none') {
+      try {
+        hatSprite = await loadSprite('reward/$activeHat.png');
+      } catch (e) {
+        debugPrint('Could not load primary hat sprite: $e. Using fallback.');
+        try {
+          hatSprite = await loadSprite('reward/dummy_reward.png');
+        } catch (e2) {
+          debugPrint('Could not load fallback hat sprite: $e2');
+        }
+      }
+    }
 
     try {
-      final relativePath = imagePath.replaceFirst('assets/images/', '');
-      final image = await images.load(relativePath);
-      characterSprite = Sprite(image);
+      // Load Idle
+      idleSprite = Sprite(
+        await images.load('${basePath}${filePrefix}_idle.png'),
+      );
+      characterSprite = idleSprite!;
+
+      // Load Run
+      runSprites = [
+        Sprite(await images.load('${basePath}${filePrefix}_run0.png')),
+        Sprite(await images.load('${basePath}${filePrefix}_run1.png')),
+        Sprite(await images.load('${basePath}${filePrefix}_run2.png')),
+      ];
+
+      // Load Jump
+      jumpSprite = Sprite(
+        await images.load('${basePath}${filePrefix}_jump.png'),
+      );
+
+      // Load Hurt
+      hurtSprite = Sprite(
+        await images.load('${basePath}${filePrefix}_hurt.png'),
+      );
     } catch (e) {
+      debugPrint('Error loading sprites: $e');
       useProceduralCharacter = true;
     }
 
@@ -267,6 +343,8 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (currentQuestion == null && !isGameOver) return; // Guard against race conditions during load
     if (isGameOver || isPaused) return;
 
     // Handle Pre-run Countdown timer
@@ -350,6 +428,38 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
     if (objectY >= size.y - 220 && !_questionResolved) {
       _checkCollision();
     }
+
+    // --- Character Animation & Physics ---
+    if (isJumping) {
+      characterYOffset += jumpVelocity * dt;
+      jumpVelocity += 1200 * dt; // Gravity
+      if (characterYOffset >= 0) {
+        characterYOffset = 0;
+        isJumping = false;
+        jumpVelocity = 0;
+      }
+    }
+
+    if (!useProceduralCharacter) {
+      if (_wrongFeedbackTimer > 0) {
+        characterSprite = hurtSprite ?? idleSprite!;
+      } else if (isJumping) {
+        characterSprite = jumpSprite ?? idleSprite!;
+      } else if (!isGameOver && _countdownTimer <= 0) {
+        _animTimer += dt;
+        if (_animTimer > 0.1) {
+          _animTimer = 0;
+          _animFrame = (_animFrame + 1) % runSprites.length;
+          if (runSprites.isNotEmpty) {
+            characterSprite = runSprites[_animFrame];
+          }
+        }
+      } else {
+        if (idleSprite != null) {
+          characterSprite = idleSprite!;
+        }
+      }
+    }
   }
 
   void _spawnConfetti(double px, double py) {
@@ -387,6 +497,11 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       combo++;
       coins += 5;
       _correctFeedbackTimer = 0.5;
+      MusicManager.playSfx('correct.wav');
+
+      // Victory Jump!
+      isJumping = true;
+      jumpVelocity = -500;
 
       // Spawn stars and confetti particles!
       _spawnConfetti(characterX, size.y - 150);
@@ -468,6 +583,7 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       _shieldTimer = 1.5;
       _activeSpeechBubble = "TRY AGAIN HERO! ❤️🛡️";
       _speechBubbleTimer = 2.0;
+      MusicManager.playSfx('correct.wav');
       _floatingPraises.add(
         FloatingPraise(
           'SHIELD SAVE! 🛡️',
@@ -484,6 +600,7 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       _speechBubbleTimer = 2.0;
       _petReaction = 'sad';
       _petStateTimer = 1.5;
+      MusicManager.playSfx('wrong.wav');
     }
 
     final qText = currentQuestion!.questionText;
@@ -514,14 +631,18 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
     isGameOver = true;
 
     MusicManager.playMenuMusic();
+    if (win) {
+      MusicManager.playSfx('level_complete.wav');
+    }
 
     final totalQuestions = questionBank.isNotEmpty ? questionBank.length : 1;
     final double accuracy =
         ((totalQuestions - mistakes.length) / totalQuestions) * 100;
     final stars = win ? (accuracy >= 80 ? 3 : (accuracy >= 50 ? 2 : 1)) : 0;
 
-    final activeContext = buildContext;
-    if (activeContext != null && activeContext.mounted) {
+    // Safety check for Navigator context
+    final activeContext = buildContext ?? context;
+    if (activeContext.mounted) {
       Navigator.of(activeContext).pushReplacement(
         MaterialPageRoute(
           builder: (_) => ResultScreen(
@@ -540,31 +661,20 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
+    super.render(canvas); // Always call this first
 
-    Color baseBg = const Color(0xFFEFF8FF);
-    Color roadColor = const Color(0xFFE2E8F0);
-    String worldTitle = 'Candy Land 🍭';
-    if (levelNumber <= 3) {
-      baseBg = const Color(0xFFFFF1F2); // Sweet Rose
-      roadColor = const Color(0xFFFFE4E6);
-      worldTitle = 'Candy Land 🍭';
-    } else if (levelNumber <= 7) {
-      baseBg = const Color(0xFF0F172A); // Space Blue
-      roadColor = const Color(0xFF1E293B);
-      worldTitle = 'Space Run 🚀';
-    } else if (levelNumber <= 11) {
-      baseBg = const Color(0xFFF0FDF4); // Mint Jungle
-      roadColor = const Color(0xFFDCFCE7);
-      worldTitle = 'Dino Jungle 🦖';
-    } else if (levelNumber <= 15) {
-      baseBg = const Color(0xFFECFEFF); // Ocean Teal
-      roadColor = const Color(0xFFCFFAFE);
-      worldTitle = 'Ocean Adventure 🌊';
-    } else {
-      baseBg = const Color(0xFFF1F5F9); // Grey factory
-      roadColor = const Color(0xFFE2E8F0);
-      worldTitle = 'Robot Factory 🤖';
+    if (currentQuestion == null && !isGameOver) return; // Guard after super
+
+    final theme = ThemeRewards.getTheme(activeTheme);
+    Color baseBg = theme.backgroundColor;
+    Color roadColor = theme.laneColor;
+    String worldTitle = '${theme.name} ${theme.iconEmoji}';
+
+    // Special animation for rainbow theme
+    if (activeTheme == 'rainbow') {
+      final double cycle = (DateTime.now().millisecondsSinceEpoch % 3000) / 3000;
+      baseBg = HSVColor.fromAHSV(1.0, cycle * 360, 0.05, 0.98).toColor();
+      roadColor = HSVColor.fromAHSV(1.0, cycle * 360, 0.1, 0.95).toColor();
     }
 
     canvas.drawRect(
@@ -588,17 +698,15 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       laneBgC,
     );
 
-    final pathPaint = Paint()
-      ..color = roadColor
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
+    // UI Improvement 1: Dashed lane divider lines
+    final dashPaint = Paint()
+      ..color = Colors.white.withOpacity(0.6)
+      ..style = PaintingStyle.fill;
 
-    canvas.drawLine(Offset(laneWidth, 0), Offset(laneWidth, size.y), pathPaint);
-    canvas.drawLine(
-      Offset(laneWidth * 2, 0),
-      Offset(laneWidth * 2, size.y),
-      pathPaint,
-    );
+    for (double y = 0; y < size.y; y += 35) {
+      canvas.drawRect(Rect.fromLTWH(laneWidth - 2, y, 4, 20), dashPaint);
+      canvas.drawRect(Rect.fromLTWH(laneWidth * 2 - 2, y, 4, 20), dashPaint);
+    }
 
     // Draw active World Title
     _textPainter.text = TextSpan(
@@ -621,7 +729,7 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
     if (activeTrail != 'none') {
       for (int i = 0; i < _trailPositions.length; i++) {
         final pos = _trailPositions[i];
-        final opacity = (i + 1) / _trailPositions.length * 0.4;
+        final opacity = (i + 1) / _trailPositions.length * 0.7;
         if (activeTrail == 'rainbow_trail') {
           final colors = [
             Colors.red,
@@ -655,8 +763,15 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       Rect.fromLTWH(20, 40, size.x - 40, 70),
       const Radius.circular(16),
     );
-    canvas.drawRRect(rrect, _rectPaint);
-    canvas.drawRRect(rrect, _borderPaint);
+    // UI Improvement 1: Warm cream question box
+    canvas.drawRRect(rrect, Paint()..color = const Color(0xFFFFF9E6));
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = const Color(0xFFFF9800)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4,
+    );
 
     _textPainter.text = TextSpan(
       text: currentQuestion!.questionText,
@@ -688,6 +803,14 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
     );
     canvas.drawRRect(timerBarRectBg, _bgTimerPaint);
 
+    // UI Improvement 1: Timer bar clock emoji
+    _textPainter.text = const TextSpan(
+      text: '⏱️',
+      style: TextStyle(fontSize: 14),
+    );
+    _textPainter.layout();
+    _textPainter.paint(canvas, Offset(size.x - 35, 112));
+
     if (activeTimer > 0) {
       final timerPaint = Paint()..color = timerColor;
       final timerBarRect = RRect.fromRectAndRadius(
@@ -703,6 +826,13 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
         ? (1.0 + 0.15 * sin(_runTimer * 1.5))
         : 1.0;
 
+    // UI Improvement 1: Soft pink glow behind hearts
+    final heartsGlowRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(14, 128, hearts * 34.0 + 8.0, 38),
+      const Radius.circular(10),
+    );
+    canvas.drawRRect(heartsGlowRect, Paint()..color = const Color(0xFFFFE4E6));
+
     canvas.save();
     canvas.translate(20, 135);
     canvas.scale(heartScale);
@@ -714,7 +844,7 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
     _textPainter.paint(canvas, const Offset(0, 0));
     canvas.restore();
 
-    // Coins rendering
+    // UI Improvement 1: Gold pill behind coins
     _textPainter.text = TextSpan(
       text: '🪙 $coins',
       style: const TextStyle(
@@ -725,6 +855,16 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       ),
     );
     _textPainter.layout();
+    final coinsRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        size.x - 140 - 8,
+        135 - 2,
+        _textPainter.width + 16,
+        _textPainter.height + 4,
+      ),
+      const Radius.circular(12),
+    );
+    canvas.drawRRect(coinsRect, Paint()..color = const Color(0xFFFFF3C7));
     _textPainter.paint(canvas, Offset(size.x - 140, 135));
 
     if (combo >= 2) {
@@ -734,10 +874,20 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
           fontFamily: 'Nunito',
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.redAccent,
+          color: Color(0xFFFF6B00),
         ),
       );
       _textPainter.layout();
+      final comboRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          size.x - 140 - 8,
+          160 - 2,
+          _textPainter.width + 16,
+          _textPainter.height + 4,
+        ),
+        const Radius.circular(10),
+      );
+      canvas.drawRRect(comboRect, Paint()..color = const Color(0xFFFFEDD5));
       _textPainter.paint(canvas, Offset(size.x - 140, 160));
     }
 
@@ -773,7 +923,7 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
 
     if (useProceduralCharacter) {
       canvas.save();
-      canvas.translate(characterX, size.y - 150);
+      canvas.translate(characterX, size.y - 150 + characterYOffset);
       canvas.scale(scaleX, scaleY);
       canvas.drawCircle(const Offset(0, 0), 30, _bodyPaint);
       canvas.drawCircle(const Offset(-10, -5), 6, _eyePaint);
@@ -786,16 +936,35 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
 
       canvas.restore();
     } else {
+      // --- THEME GLOW EFFECT ---
+      if (activeTheme != 'blue') {
+        final glowPaint = Paint()
+          ..color = themeColor.withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+        canvas.drawCircle(
+          Offset(characterX, size.y - 150 + characterYOffset),
+          45,
+          glowPaint,
+        );
+      }
+
       final sizeX = 80.0 * scaleX;
       final sizeY = 80.0 * scaleY;
       characterSprite.render(
         canvas,
-        position: Vector2(characterX - sizeX / 2, size.y - 150 - sizeY / 2),
+        position: Vector2(
+          characterX - sizeX / 2,
+          size.y - 150 - sizeY / 2 + characterYOffset,
+        ),
         size: Vector2(sizeX, sizeY),
       );
 
       // Draw custom equipped hat on top of the sprite
-      _drawHatOverlay(canvas, characterX, size.y - 150 - sizeY / 2);
+      _drawHatOverlay(
+        canvas,
+        characterX,
+        size.y - 150 - sizeY / 2 + characterYOffset,
+      );
     }
 
     // --- Draw Pet Buddy Following Character ---
@@ -947,7 +1116,7 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
         canvas,
         Offset(
           size.x / 2 - _textPainter.width / 2,
-          size.y / 2 - _textPainter.height / 2,
+          size.y * 0.45 - _textPainter.height / 2,
         ),
       );
     }
@@ -1053,6 +1222,16 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
   void _drawHatOverlay(Canvas canvas, double cx, double cy) {
     if (activeHat == 'none') return;
 
+    if (hatSprite != null) {
+      hatSprite!.render(
+        canvas,
+        position: Vector2(cx - 25, cy - 20),
+        size: Vector2(50, 40),
+      );
+      return;
+    }
+
+    // Procedural Fallback if sprite fails
     if (activeHat == 'propeller_hat') {
       _hatPaint.color = Colors.red;
       canvas.drawRect(Rect.fromLTWH(cx - 15, cy - 8, 30, 8), _hatPaint);
@@ -1079,26 +1258,48 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
   }
 
   // ─── HORIZONTAL ANSWER LAYOUT (in a line) ───────────────────
+  // ─── HORIZONTAL ANSWER LAYOUT (in a line) ───────────────────
   void _drawHorizontalGate(
     Canvas canvas,
     int lane,
     String option,
     double laneWidth,
   ) {
+    if (objectY < -30) return; // Guard for clipping at top
+
     final double laneCenterX = (lane * laneWidth) + (laneWidth * 0.5);
     final double cardWidth = (laneWidth * 0.78).clamp(82.0, 120.0);
-    const double cardHeight = 64.0;
+
+    // Bug 3: Dynamic height based on text length
+    final double cardHeight = option.length > 6 ? 80.0 : 64.0;
 
     final double drawnY = objectY;
-
     final bool selected = currentLane == lane;
 
-    final Color bgColor = selected
-        ? const Color(0xFFFFF7CC)
-        : const Color(0xFFFFFFFF);
-    final Color borderColor = selected
-        ? const Color(0xFFFBBF24)
-        : const Color(0xFFA855F7);
+    // UI Improvement 2: Lane-specific colors
+    Color bgColor;
+    Color borderColor;
+
+    if (selected) {
+      bgColor = const Color(0xFFFFF9C4);
+      borderColor = const Color(0xFFFF9800);
+    } else {
+      switch (lane) {
+        case 0:
+          bgColor = const Color(0xFFE8F5E9);
+          borderColor = const Color(0xFF66BB6A);
+          break;
+        case 1:
+          bgColor = const Color(0xFFE3F2FD);
+          borderColor = const Color(0xFF42A5F5);
+          break;
+        case 2:
+        default:
+          bgColor = const Color(0xFFF3E5F5);
+          borderColor = const Color(0xFFAB47BC);
+          break;
+      }
+    }
 
     // Drop shadow
     canvas.drawRRect(
@@ -1127,7 +1328,31 @@ class KiddoGame extends FlameGame with PanDetector, TapCallbacks {
       Paint()
         ..color = borderColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = selected ? 4 : 2,
+        ..strokeWidth = selected ? 5 : 2,
+    );
+
+    // Selected star decoration
+    if (selected) {
+      _textPainter.text = const TextSpan(
+        text: '⭐',
+        style: TextStyle(fontSize: 16),
+      );
+      _textPainter.layout();
+      _textPainter.paint(
+        canvas,
+        Offset(laneCenterX - 8, drawnY - cardHeight / 2 - 18),
+      );
+    }
+
+    // Lane label letter
+    _textPainter.text = TextSpan(
+      text: lane == 0 ? 'A' : (lane == 1 ? 'B' : 'C'),
+      style: const TextStyle(fontSize: 11, color: Colors.grey),
+    );
+    _textPainter.layout();
+    _textPainter.paint(
+      canvas,
+      Offset(laneCenterX - 6, drawnY + cardHeight / 2 - 18),
     );
 
     // Option text

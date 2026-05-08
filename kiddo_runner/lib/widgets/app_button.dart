@@ -3,7 +3,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_dimensions.dart';
 import '../core/theme/app_text_styles.dart';
 
-enum AppButtonVariant { primary, secondary, outline, danger }
+enum AppButtonVariant { primary, secondary, outline, danger, reward }
 
 enum AppButtonSize { sm, md, lg }
 
@@ -76,6 +76,11 @@ class _AppButtonState extends State<AppButton>
         break;
       case AppButtonVariant.danger:
         bg = isEnabled ? AppColors.error : AppColors.neutral300;
+        border = Colors.transparent;
+        fg = Colors.white;
+        break;
+      case AppButtonVariant.reward:
+        bg = isEnabled ? const Color(0xFFFF9800) : AppColors.neutral300;
         border = Colors.transparent;
         fg = Colors.white;
         break;

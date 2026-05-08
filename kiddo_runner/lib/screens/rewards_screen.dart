@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/reward_service.dart';
+import '../models/reward_item.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 import '../widgets/app_card.dart';
@@ -7,6 +9,8 @@ import '../widgets/app_button.dart';
 import '../state/profile_provider.dart';
 import '../core/storage/storage_manager.dart';
 import '../models/child_profile.dart';
+import '../core/constants/theme_rewards.dart';
+import '../models/theme_reward.dart';
 
 class RewardsScreen extends StatefulWidget {
   const RewardsScreen({super.key});
@@ -65,50 +69,60 @@ class _RewardsScreenState extends State<RewardsScreen>
   ];
 
   final List<Map<String, dynamic>> _hats = [
-    {'key': 'none', 'name': 'No Hat', 'cost': 0, 'icon': '❌'},
+    {
+      'key': 'none',
+      'name': 'No Hat',
+      'cost': 0,
+      'image': 'assets/images/reward/no_hat.png'
+    },
     {
       'key': 'propeller_hat',
-      'name': '🛸 Propeller Hat',
+      'name': 'Propeller Hat',
       'cost': 20,
-      'icon': '🛸',
+      'image': 'assets/images/reward/hat_propeller.png'
     },
-    {'key': 'cowboy_hat', 'name': '🤠 Cowboy Hat', 'cost': 40, 'icon': '🤠'},
-    {'key': 'wizard_hat', 'name': '🧙 Wizard Hat', 'cost': 60, 'icon': '🧙'},
+    {
+      'key': 'cowboy_hat',
+      'name': 'Cowboy Hat',
+      'cost': 40,
+      'image': 'assets/images/reward/hat_cowboy.png'
+    },
+    {
+      'key': 'wizard_hat',
+      'name': 'Wizard Hat',
+      'cost': 60,
+      'image': 'assets/images/reward/hat_wizard.png'
+    },
   ];
 
   final List<Map<String, dynamic>> _trails = [
-    {'key': 'none', 'name': 'No Trail', 'cost': 0, 'icon': '❌'},
+    {
+      'key': 'none',
+      'name': 'No Trail',
+      'cost': 0,
+      'image': 'assets/images/reward/no_trail.png'
+    },
     {
       'key': 'rainbow_trail',
-      'name': '🌈 Rainbow Trail',
+      'name': 'Rainbow Trail',
       'cost': 30,
-      'icon': '🌈',
+      'image': 'assets/images/reward/trail_rainbow.png'
     },
-    {'key': 'star_trail', 'name': '⭐ Star Trail', 'cost': 50, 'icon': '⭐'},
-    {'key': 'fire_trail', 'name': '🔥 Fire Trail', 'cost': 70, 'icon': '🔥'},
+    {
+      'key': 'star_trail',
+      'name': 'Star Trail',
+      'cost': 50,
+      'image': 'assets/images/reward/trail_star.png'
+    },
+    {
+      'key': 'fire_trail',
+      'name': 'Fire Trail',
+      'cost': 70,
+      'image': 'assets/images/reward/trail_fire.png'
+    },
   ];
 
-  final List<Map<String, dynamic>> _themes = [
-    {'key': 'blue', 'name': 'Sky Blue Theme', 'cost': 0, 'color': Colors.blue},
-    {
-      'key': 'pink',
-      'name': 'Candy Pink Theme',
-      'cost': 30,
-      'color': Colors.pink,
-    },
-    {
-      'key': 'green',
-      'name': 'Forest Green Theme',
-      'cost': 40,
-      'color': Colors.green,
-    },
-    {
-      'key': 'gold',
-      'name': 'Golden Crown Theme',
-      'cost': 80,
-      'color': Colors.amber,
-    },
-  ];
+  final List<ThemeReward> _themes = ThemeRewards.themes;
 
   final List<Map<String, dynamic>> _achievements = [
     {
@@ -159,6 +173,58 @@ class _RewardsScreenState extends State<RewardsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _integrateServiceRewards();
+  }
+
+  void _integrateServiceRewards() {
+    final serviceRewards = RewardService.allRewards;
+
+    for (final reward in serviceRewards) {
+      final map = {
+        'key': reward.id,
+        'name': reward.name,
+        'cost': 0, // Service rewards are earned, not bought
+        'image': reward.imagePath,
+        'imagePath': reward.imagePath,
+        'isServiceReward': true,
+        'description': reward.description,
+      };
+
+      switch (reward.type) {
+        case RewardType.outfit:
+        case RewardType.skin:
+          if (!_outfits.any((o) => o['key'] == reward.id)) {
+            _outfits.add(map);
+          }
+          break;
+        case RewardType.cap:
+          if (!_hats.any((h) => h['key'] == reward.id)) {
+            _hats.add(map);
+          }
+          break;
+        case RewardType.shoes:
+          if (!_hats.any((h) => h['key'] == reward.id)) {
+            _hats.add(map);
+          }
+          break;
+        case RewardType.badge:
+          if (!_achievements.any((a) => a['key'] == reward.id)) {
+            _achievements.add({
+              'key': reward.id,
+              'name': reward.name,
+              'desc': reward.description,
+              'reward': 0,
+              'isServiceReward': true,
+              'image': reward.imagePath,
+              'imagePath': reward.imagePath,
+            });
+          }
+          break;
+        case RewardType.stars:
+          // Star packs are usually immediate consumables or separate
+          break;
+      }
+    }
   }
 
   @override
@@ -229,14 +295,14 @@ class _RewardsScreenState extends State<RewardsScreen>
                     children: [
                       Row(
                         children: [
-                          const Icon(
-                            Icons.monetization_on_rounded,
-                            color: AppColors.secondary500,
-                            size: 36,
+                          Image.asset(
+                            'assets/images/coins/coin_01.png',
+                            width: 40,
+                            height: 40,
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Your Coins 🪙',
+                            'Your Coins',
                             style: AppTextStyles.base.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.neutral700,
@@ -296,7 +362,11 @@ class _RewardsScreenState extends State<RewardsScreen>
                       unlockedList,
                       equippedTheme,
                     ),
-                    _buildAchievementsTab(unlockedAchievementsList),
+                    _buildAchievementsTab(
+                      profile,
+                      profileProv,
+                      unlockedAchievementsList,
+                    ),
                   ],
                 ),
               ),
@@ -313,10 +383,8 @@ class _RewardsScreenState extends State<RewardsScreen>
     String selectedTrail,
     String selectedTheme,
   ) {
-    Color themeColor = Colors.blue;
-    if (selectedTheme == 'pink') themeColor = Colors.pink;
-    if (selectedTheme == 'green') themeColor = Colors.green;
-    if (selectedTheme == 'gold') themeColor = Colors.amber;
+    final theme = ThemeRewards.getTheme(selectedTheme);
+    final themeColor = theme.primaryColor;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -363,6 +431,11 @@ class _RewardsScreenState extends State<RewardsScreen>
                 child: Image.asset(
                   profile.characterImagePath,
                   fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.person_rounded,
+                    size: 40,
+                    color: AppColors.neutral400,
+                  ),
                 ),
               ),
               if (selectedHat != 'none')
@@ -450,8 +523,19 @@ class _RewardsScreenState extends State<RewardsScreen>
 
         return _buildItemCard(
           name: name,
-          detail: isUnlocked ? 'Unlocked ✅' : 'Cost: $cost Coins 🪙',
-          image: Image.asset(imagePath, fit: BoxFit.contain),
+          detail: isUnlocked ? 'Unlocked ✅' : 'Available in Shop',
+          image: Image.asset(
+            imagePath,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Image.asset(
+              'assets/images/reward/dummy_reward.png',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.checkroom_rounded,
+                color: AppColors.primary300,
+              ),
+            ),
+          ),
           isEquipped: isEquipped,
           isUnlocked: isUnlocked,
           onEquip: () async {
@@ -468,6 +552,22 @@ class _RewardsScreenState extends State<RewardsScreen>
                   profileProv.loadProfile();
                   setState(() {});
                 }
+              : null,
+          trailingWidget: (!isUnlocked && cost > 0)
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$cost',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.neutral700,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Image.asset('assets/images/coins/coin_01.png', width: 24),
+                  ],
+                )
               : null,
         );
       },
@@ -488,16 +588,23 @@ class _RewardsScreenState extends State<RewardsScreen>
         final key = hat['key'] as String;
         final name = hat['name'] as String;
         final cost = hat['cost'] as int;
-        final icon = hat['icon'] as String;
-
         final isUnlocked = key == 'none' || unlockedList.contains('hat_$key');
         final isEquipped = equippedHat == key;
 
         return _buildItemCard(
           name: name,
-          detail: isUnlocked ? 'Unlocked ✅' : 'Cost: $cost Coins 🪙',
-          image: Center(
-            child: Text(icon, style: const TextStyle(fontSize: 32)),
+          detail: isUnlocked ? 'Unlocked ✅' : 'Classic Accessory',
+          image: Image.asset(
+            'assets/images/reward/dummy_reward.png',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Center(
+              child: Text(
+                key == 'none' ? '❌' :
+                key == 'propeller_hat' ? '🛸' :
+                key == 'cowboy_hat' ? '🤠' : '🧙',
+                style: const TextStyle(fontSize: 32),
+              ),
+            ),
           ),
           isEquipped: isEquipped,
           isUnlocked: isUnlocked,
@@ -515,6 +622,22 @@ class _RewardsScreenState extends State<RewardsScreen>
                   profileProv.loadProfile();
                   setState(() {});
                 }
+              : null,
+          trailingWidget: (!isUnlocked && cost > 0)
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$cost',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.neutral700,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Image.asset('assets/images/coins/coin_01.png', width: 24),
+                  ],
+                )
               : null,
         );
       },
@@ -535,16 +658,23 @@ class _RewardsScreenState extends State<RewardsScreen>
         final key = trail['key'] as String;
         final name = trail['name'] as String;
         final cost = trail['cost'] as int;
-        final icon = trail['icon'] as String;
-
         final isUnlocked = key == 'none' || unlockedList.contains('trail_$key');
         final isEquipped = equippedTrail == key;
 
         return _buildItemCard(
           name: name,
-          detail: isUnlocked ? 'Unlocked ✅' : 'Cost: $cost Coins 🪙',
-          image: Center(
-            child: Text(icon, style: const TextStyle(fontSize: 32)),
+          detail: isUnlocked ? 'Unlocked ✅' : 'Visual Effect',
+          image: Image.asset(
+            'assets/images/reward/dummy_reward.png',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Center(
+              child: Text(
+                key == 'none' ? '❌' :
+                key == 'sparkle' ? '✨' :
+                key == 'rainbow' ? '🌈' : '💨',
+                style: const TextStyle(fontSize: 32),
+              ),
+            ),
           ),
           isEquipped: isEquipped,
           isUnlocked: isUnlocked,
@@ -563,6 +693,22 @@ class _RewardsScreenState extends State<RewardsScreen>
                   setState(() {});
                 }
               : null,
+          trailingWidget: (!isUnlocked && cost > 0)
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$cost',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.neutral700,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Image.asset('assets/images/coins/coin_01.png', width: 24),
+                  ],
+                )
+              : null,
         );
       },
     );
@@ -574,48 +720,79 @@ class _RewardsScreenState extends State<RewardsScreen>
     List<String> unlockedList,
     String equippedTheme,
   ) {
+    final unlockedThemes = StorageManager.unlockedThemes;
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _themes.length,
       itemBuilder: (context, index) {
         final theme = _themes[index];
-        final key = theme['key'] as String;
-        final name = theme['name'] as String;
-        final cost = theme['cost'] as int;
-        final color = theme['color'] as Color;
+        final isUnlocked = unlockedThemes.contains(theme.key);
+        final isEquipped = equippedTheme == theme.key;
 
-        final isUnlocked = key == 'blue' || unlockedList.contains('theme_$key');
-        final isEquipped = equippedTheme == key;
+        String unlockDesc = '';
+        switch (theme.unlockType) {
+          case ThemeUnlockType.level:
+            unlockDesc = 'Complete Level ${theme.unlockValue}';
+            break;
+          case ThemeUnlockType.streak:
+            unlockDesc = 'Reach ${theme.unlockValue} day streak';
+            break;
+          case ThemeUnlockType.coins:
+            unlockDesc = '${theme.unlockValue} coins to unlock';
+            break;
+          case ThemeUnlockType.defaultUnlocked:
+            unlockDesc = 'Unlocked ✅';
+            break;
+        }
 
         return _buildItemCard(
-          name: name,
-          detail: isUnlocked ? 'Unlocked ✅' : 'Cost: $cost Coins 🪙',
+          name: theme.name,
+          detail: isUnlocked ? 'Unlocked ✅' : unlockDesc,
           image: Container(
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: theme.backgroundColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: theme.primaryColor, width: 2),
+            ),
+            child: Center(
+              child: Text(
+                theme.iconEmoji,
+                style: const TextStyle(fontSize: 32),
+              ),
+            ),
           ),
           isEquipped: isEquipped,
           isUnlocked: isUnlocked,
           onEquip: () async {
-            await StorageManager.setEquippedTheme(key);
+            await StorageManager.setEquippedTheme(theme.key);
             setState(() {});
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Theme "${theme.name}" equipped!'),
+                  backgroundColor: theme.primaryColor,
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            }
           },
-          onUnlock: profile.totalCoins >= cost
-              ? () async {
-                  final updated = profile.copyWith(
-                    totalCoins: profile.totalCoins - cost,
-                  );
-                  await StorageManager.saveChildProfile(updated);
-                  await StorageManager.unlockReward('theme_$key');
-                  profileProv.loadProfile();
-                  setState(() {});
-                }
+          onUnlock: null, // Unlocked via progression/coins automatically
+          trailingWidget: !isUnlocked
+              ? const Icon(Icons.lock_rounded, color: AppColors.neutral400)
               : null,
         );
       },
     );
   }
 
-  Widget _buildAchievementsTab(List<String> unlockedAchievementsList) {
+  Widget _buildAchievementsTab(
+    ChildProfile profile,
+    ProfileProvider profileProv,
+    List<String> unlockedAchievementsList,
+  ) {
+    final unlockedRewards = StorageManager.unlockedRewards;
+    
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _achievements.length,
@@ -625,8 +802,12 @@ class _RewardsScreenState extends State<RewardsScreen>
         final name = ach['name'] as String;
         final desc = ach['desc'] as String;
         final reward = ach['reward'] as int;
+        final isServiceReward = ach['isServiceReward'] == true;
+        final imagePath = ach['imagePath'] as String?;
 
-        final isUnlocked = unlockedAchievementsList.contains(key);
+        final isUnlocked = isServiceReward 
+            ? unlockedRewards.contains(key)
+            : unlockedAchievementsList.contains(key);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
@@ -643,14 +824,26 @@ class _RewardsScreenState extends State<RewardsScreen>
                   decoration: BoxDecoration(
                     color: isUnlocked
                         ? Colors.amber.withValues(alpha: 0.15)
-                        : AppColors.neutral100,
+                        : Colors.amber.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      isUnlocked ? '🥇' : '🔒',
-                      style: const TextStyle(fontSize: 20),
-                    ),
+                    child: isServiceReward && imagePath != null
+                        ? Opacity(
+                            opacity: isUnlocked ? 1.0 : 0.5,
+                            child: Image.asset(
+                              imagePath,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Text(
+                                isUnlocked ? '🥇' : '🔒',
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          )
+                        : Text(
+                            isUnlocked ? '🥇' : '🔒',
+                            style: const TextStyle(fontSize: 20),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -681,29 +874,77 @@ class _RewardsScreenState extends State<RewardsScreen>
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isUnlocked
-                        ? AppColors.success.withValues(alpha: 0.15)
-                        : AppColors.neutral200,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '+$reward 🪙',
-                    style: TextStyle(
-                      fontFamily: AppTextStyles.primaryFont,
-                      fontWeight: FontWeight.bold,
-                      color: isUnlocked
-                          ? AppColors.success
-                          : AppColors.neutral600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
+                if (!isServiceReward)
+                  Builder(builder: (context) {
+                    final claimedList = StorageManager.claimedAchievements;
+                    final isClaimed = claimedList.contains(key);
+
+                    return GestureDetector(
+                      onTap: (isUnlocked && !isClaimed)
+                          ? () async {
+                              final updated = profile.copyWith(
+                                totalCoins: profile.totalCoins + reward,
+                              );
+                              await StorageManager.saveChildProfile(updated);
+                              await StorageManager.claimAchievement(key);
+                              profileProv.loadProfile();
+                              setState(() {});
+                              
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Claimed $reward coins! ✨'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              }
+                            }
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isClaimed
+                              ? AppColors.neutral200
+                              : (isUnlocked
+                                  ? AppColors.success.withValues(alpha: 0.15)
+                                  : AppColors.neutral100),
+                          borderRadius: BorderRadius.circular(8),
+                          border: (isUnlocked && !isClaimed)
+                              ? Border.all(color: AppColors.success, width: 1)
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isClaimed ? 'Claimed' : '+$reward',
+                              style: TextStyle(
+                                fontFamily: AppTextStyles.primaryFont,
+                                fontWeight: FontWeight.bold,
+                                color: isClaimed
+                                    ? AppColors.neutral500
+                                    : (isUnlocked
+                                        ? AppColors.success
+                                        : AppColors.neutral600),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Image.asset(
+                              'assets/images/coins/coin_01.png',
+                              width: 16,
+                              height: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+                else if (isUnlocked)
+                  const Icon(Icons.check_circle_rounded, color: AppColors.success),
               ],
             ),
           ),
@@ -720,6 +961,7 @@ class _RewardsScreenState extends State<RewardsScreen>
     required bool isUnlocked,
     required VoidCallback onEquip,
     required VoidCallback? onUnlock,
+    Widget? trailingWidget,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -737,7 +979,18 @@ class _RewardsScreenState extends State<RewardsScreen>
                 color: AppColors.primary50,
                 shape: BoxShape.circle,
               ),
-              child: image,
+              child: Stack(
+                children: [
+                  Opacity(
+                    opacity: isUnlocked ? 1.0 : 0.6,
+                    child: image,
+                  ),
+                  if (!isUnlocked)
+                    const Center(
+                      child: Icon(Icons.lock_rounded, color: Colors.white70),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -764,6 +1017,10 @@ class _RewardsScreenState extends State<RewardsScreen>
                 ],
               ),
             ),
+            if (trailingWidget != null) ...[
+              trailingWidget,
+              const SizedBox(width: 8),
+            ],
             if (isEquipped)
               Container(
                 padding: const EdgeInsets.symmetric(

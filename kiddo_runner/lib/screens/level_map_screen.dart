@@ -5,6 +5,7 @@ import '../core/theme/app_text_styles.dart';
 import '../widgets/app_dialogs.dart';
 import '../state/profile_provider.dart';
 import 'level_intro_screen.dart';
+import '../core/storage/music_manager.dart';
 
 class LevelMapScreen extends StatelessWidget {
   const LevelMapScreen({super.key, required this.mode});
@@ -62,6 +63,7 @@ class LevelMapScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () {
                         if (isUnlocked) {
+                          MusicManager.playSfx('button_tap.wav');
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => LevelIntroScreen(
@@ -101,44 +103,68 @@ class LevelMapScreen extends StatelessWidget {
                           border: Border.all(color: Colors.white, width: 6),
                         ),
                         alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
-                            Text(
-                              'Lv ${levelProgress.levelNumber}',
-                              style: AppTextStyles.base.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                            if (isUnlocked && levelProgress.bestStars > 0)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(
-                                  levelProgress.bestStars,
-                                  (_) => const Icon(
-                                    Icons.star_rounded,
-                                    size: 16,
-                                    color: AppColors.secondary500,
+                            if (!isCompleted && isUnlocked)
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFFFB300).withOpacity(0.3),
+                                    width: 4,
                                   ),
                                 ),
-                              )
-                            else if (!isUnlocked)
-                              const Icon(
-                                Icons.lock_rounded,
-                                size: 24,
-                                color: Colors.white,
-                              )
-                            else
-                              const Text(
-                                'PLAY ⭐️',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
                               ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Lv ${levelProgress.levelNumber}',
+                                  style: AppTextStyles.base.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                if (isUnlocked && levelProgress.bestStars > 0)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        '✅',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ...List.generate(
+                                        levelProgress.bestStars,
+                                        (_) => const Icon(
+                                          Icons.star_rounded,
+                                          size: 14,
+                                          color: AppColors.secondary500,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else if (!isUnlocked)
+                                  const Icon(
+                                    Icons.lock_rounded,
+                                    size: 24,
+                                    color: Colors.white,
+                                  )
+                                else
+                                  const Text(
+                                    'PLAY ⭐️',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
                       ),

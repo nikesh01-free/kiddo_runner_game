@@ -17,6 +17,7 @@ dependencies:
   hive_flutter: 1.1.0
   provider: 6.1.5+1
   uuid: 4.3.3
+  lottie: ^3.1.0
 
 dev_dependencies:
   flutter_test:
@@ -40,3 +41,5 @@ flutter:
     - assets/images/backgrounds/kenney_background-elements/PNG/Flat/
     - assets/audio/
     - assets/licenses/
+    - assets/images/reward/
+    - assets/lottie/

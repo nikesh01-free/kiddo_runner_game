@@ -89,7 +89,10 @@ class QuestionService {
       }
     }
 
-    return selected.sublist(0, requiredCount);
+    if (selected.length >= requiredCount) {
+      return selected.sublist(0, requiredCount);
+    }
+    return selected;
   }
 
   /// Generates a dynamic fallback question with adaptive difficulty and educational formats

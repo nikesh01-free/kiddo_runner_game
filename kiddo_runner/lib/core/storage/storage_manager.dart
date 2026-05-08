@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/child_profile.dart';
@@ -119,6 +120,16 @@ class StorageManager {
     }
   }
 
+  static List<String> get claimedAchievements =>
+      _prefs.getStringList('claimed_achievements') ?? [];
+  static Future<void> claimAchievement(String id) async {
+    final list = List<String>.from(claimedAchievements);
+    if (!list.contains(id)) {
+      list.add(id);
+      await _prefs.setStringList('claimed_achievements', list);
+    }
+  }
+
   static String get equippedSkin =>
       _prefs.getString('equipped_skin') ?? 'default_runner';
   static Future<void> setEquippedSkin(String val) =>
@@ -135,21 +146,49 @@ class StorageManager {
 
   static String get equippedTheme =>
       _prefs.getString('equipped_theme') ?? 'blue';
-  static Future<void> setEquippedTheme(String val) =>
-      _prefs.setString('equipped_theme', val);
+
+  static Future<void> setEquippedTheme(String val) async {
+    if (isThemeUnlocked(val)) {
+      await _prefs.setString('equipped_theme', val);
+    }
+  }
+
+  static List<String> get unlockedThemes =>
+      _prefs.getStringList('unlocked_themes') ?? ['blue'];
+
+  static Future<void> unlockTheme(String themeKey) async {
+    final list = List<String>.from(unlockedThemes);
+    if (!list.contains(themeKey)) {
+      list.add(themeKey);
+      await _prefs.setStringList('unlocked_themes', list);
+    }
+  }
+
+  static bool isThemeUnlocked(String themeKey) {
+    if (themeKey == 'blue') return true;
+    return unlockedThemes.contains(themeKey);
+  }
 
   // Child Profile Hive Transactions
   static ChildProfile? getChildProfile() {
-    if (_profileBox.isEmpty) return null;
-    var map = _profileBox.get('active_profile');
+    dynamic map = _profileBox.get('active_profile');
     if (map == null && _profileBox.isNotEmpty) {
-      map = _profileBox.getAt(0);
+      try {
+        map = _profileBox.getAt(0);
+      } catch (_) {
+        map = null;
+      }
       if (map != null) {
         _profileBox.put('active_profile', map);
       }
     }
     if (map == null) return null;
-    return ChildProfile.fromMap(Map<dynamic, dynamic>.from(map));
+    try {
+      return ChildProfile.fromMap(Map<dynamic, dynamic>.from(map));
+    } catch (e) {
+      debugPrint('Error parsing profile: $e');
+      return null;
+    }
   }
 
   static Future<void> saveChildProfile(ChildProfile profile) async {
@@ -208,6 +247,8 @@ class StorageManager {
     await _mistakeBox.clear();
     await _questionBox.clear();
     await _prefs.clear();
+    await _prefs.setStringList('unlocked_themes', ['blue']);
+    await _prefs.setString('equipped_theme', 'blue');
     await _seedQuestionBank();
     await setSoundEnabled(true);
     await setMusicEnabled(true);
@@ -589,7 +630,9 @@ class StorageManager {
     }
 
     for (final q in seed) {
-      await _questionBox.put(q.id, q.toMap());
+      if (!_questionBox.containsKey(q.id)) {
+        await _questionBox.put(q.id, q.toMap());
+      }
     }
   }
 }

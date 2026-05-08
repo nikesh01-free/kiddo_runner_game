@@ -13,6 +13,8 @@ import 'settings_screen.dart';
 import 'rewards_screen.dart';
 import 'break_screen.dart';
 import '../core/storage/storage_manager.dart';
+import '../core/constants/theme_rewards.dart';
+import '../models/theme_reward.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialMode = 'math'});
@@ -290,18 +292,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildStatPill(
                             Icons.monetization_on_rounded,
                             '${profile.totalCoins}',
+                            const Color(0xFFFFF3C7),
                             AppColors.secondary500,
                           ),
                           const SizedBox(width: 8),
                           _buildStatPill(
                             Icons.star_rounded,
                             '${profile.totalStars}',
+                            const Color(0xFFE3F2FD),
                             AppColors.primary500,
                           ),
                           const SizedBox(width: 8),
                           _buildStatPill(
                             Icons.local_fire_department_rounded,
                             '${StorageManager.playStreak}',
+                            const Color(0xFFFFEDD5),
                             Colors.orange,
                           ),
                         ],
@@ -313,7 +318,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.neutral100,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE3F2FD), Color(0xFFF3E5F5)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
                       borderRadius: BorderRadius.circular(AppRadius.xl),
                     ),
                     child: Row(
@@ -350,6 +359,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: _activeMode == 'math'
                               ? AppColors.primary500
                               : AppColors.accent500,
+                        ),
+                        const Text(
+                          '🌟 ⭐ 🌟',
+                          style: TextStyle(fontSize: 18),
                         ),
                         const SizedBox(height: AppSpacing.s4),
                         Text(
@@ -389,6 +402,67 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.s6),
+                  
+                  // Theme Preview Card
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const RewardsScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: ThemeRewards.getTheme(StorageManager.equippedTheme).primaryColor.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: AppShadows.shadow1,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: ThemeRewards.getTheme(StorageManager.equippedTheme).backgroundColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              ThemeRewards.getTheme(StorageManager.equippedTheme).iconEmoji,
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'World Theme',
+                                  style: AppTextStyles.xs.copyWith(
+                                    color: AppColors.neutral500,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  ThemeRewards.getTheme(StorageManager.equippedTheme).name,
+                                  style: AppTextStyles.base.copyWith(
+                                    color: AppColors.neutral900,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded, color: AppColors.neutral400),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: AppSpacing.s6),
 
                   Row(
@@ -456,16 +530,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatPill(IconData icon, String value, Color color) {
+  Widget _buildStatPill(
+    IconData icon,
+    String value,
+    Color bgColor,
+    Color iconColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withAlpha(38),
+        color: bgColor,
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: color),
+          Icon(icon, size: 20, color: iconColor),
           const SizedBox(width: 4),
           Text(
             value,

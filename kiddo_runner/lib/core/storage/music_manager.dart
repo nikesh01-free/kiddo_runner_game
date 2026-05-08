@@ -11,16 +11,8 @@ class MusicManager {
   static void init() {
     try {
       FlameAudio.bgm.initialize();
-      FlameAudio.bgm.audioPlayer.onPlayerComplete.listen((event) async {
-        if (_isMusicEnabled && _currentMusicName != null) {
-          try {
-            await FlameAudio.bgm.audioPlayer.seek(const Duration(seconds: 1));
-            await FlameAudio.bgm.audioPlayer.resume();
-          } catch (e) {
-            debugPrint('Error looping track to 1s: $e');
-          }
-        }
-      });
+      // Prefix setup
+      FlameAudio.audioCache.prefix = 'assets/audio/';
     } catch (e) {
       debugPrint('Error initializing FlameAudio bgm: $e');
     }
@@ -57,7 +49,6 @@ class MusicManager {
       return;
     }
     try {
-      FlameAudio.audioCache.prefix = 'assets/audio/';
       _currentMusicName = 'background_music.mp3';
       debugPrint('Playing background_music.mp3');
       await FlameAudio.bgm.play('background_music.mp3', volume: 0.5);
@@ -79,7 +70,6 @@ class MusicManager {
       return;
     }
     try {
-      FlameAudio.audioCache.prefix = 'assets/audio/';
       _currentMusicName = 'in_level_game_background_music.mp3';
       debugPrint('Playing in_level_game_background_music.mp3');
       await FlameAudio.bgm.play(
@@ -95,7 +85,6 @@ class MusicManager {
   static Future<void> playSfx(String filename) async {
     if (!_isSoundEnabled) return;
     try {
-      FlameAudio.audioCache.prefix = 'assets/audio/';
       debugPrint('Playing SFX: $filename');
       await FlameAudio.play(filename, volume: 0.8);
     } catch (e) {

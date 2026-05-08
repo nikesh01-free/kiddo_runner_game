@@ -34,6 +34,9 @@ class ChildProfile {
         return 'assets/images/characters/kenney_toon-characters/Zombie/PNG/Poses HD/character_zombie_idle.png';
       case 'female_person':
         return 'assets/images/characters/kenney_toon-characters/Female person/PNG/Poses HD/character_femalePerson_idle.png';
+      case 'outfit_red':
+        // Mapping a specific reward ID to a character skin
+        return 'assets/images/characters/kenney_toon-characters/Male adventurer/PNG/Poses HD/character_maleAdventurer_idle.png';
       default:
         return 'assets/images/characters/kenney_toon-characters/Male adventurer/PNG/Poses HD/character_maleAdventurer_idle.png';
     }

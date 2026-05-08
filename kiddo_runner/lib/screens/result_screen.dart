@@ -8,6 +8,10 @@ import '../widgets/app_card.dart';
 import '../state/profile_provider.dart';
 import 'home_screen.dart';
 import 'mistake_review_screen.dart';
+import '../core/storage/music_manager.dart';
+import '../services/reward_service.dart';
+import '../widgets/reward_claim_dialog.dart';
+import '../widgets/dancing_character.dart';
 
 class ResultScreen extends StatelessWidget {
   const ResultScreen({
@@ -37,12 +41,18 @@ class ResultScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.primary50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: stars > 0
+              ? const LinearGradient(
+                  colors: [Color(0xFFE8F5E9), Color(0xFFF1F8E9)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                )
+              : const LinearGradient(
+                  colors: [Color(0xFFFFF8E1), Color(0xFFFFF3E0)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -50,27 +60,26 @@ class ResultScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: AppSpacing.s8),
+                const SizedBox(height: AppSpacing.s4),
                 Text(
                   stars > 0 ? 'Awesome Run! 🎉' : 'Good Try! 🌟',
                   style: AppTextStyles.celebration.copyWith(
                     color: stars > 0 ? AppColors.success : AppColors.warning,
                     fontWeight: FontWeight.w900,
+                    fontSize: 28,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.s2),
                 Text(
-                  stars > 0
-                      ? 'Super work! You completed the run beautifully!'
-                      : 'You did so well! Let\'s learn and run again.',
+                  'Level $levelNumber Completed! 🏆',
                   style: AppTextStyles.base.copyWith(
                     color: AppColors.neutral500,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppSpacing.s6),
+                const SizedBox(height: AppSpacing.s3),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -78,20 +87,29 @@ class ResultScreen extends StatelessWidget {
                     final fill = index < stars;
                     return Icon(
                       Icons.star_rounded,
-                      size: 72,
+                      size: 60,
                       color: fill
                           ? AppColors.secondary500
                           : AppColors.neutral300,
                     );
                   }),
                 ),
-                const SizedBox(height: AppSpacing.s6),
+
+                if (stars > 0) ...[
+                  const SizedBox(height: AppSpacing.s3),
+                  const DancingCharacter(size: 110),
+                  const SizedBox(height: AppSpacing.s3),
+                ],
+                const SizedBox(height: AppSpacing.s3),
 
                 AppCard(
                   variant: stars > 0
                       ? AppCardVariant.success
                       : AppCardVariant.warning,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   child: Column(
                     children: [
                       _buildStatRow(
@@ -107,7 +125,7 @@ class ResultScreen extends StatelessWidget {
                         Icons.analytics_rounded,
                         AppColors.primary500,
                       ),
-                      const Divider(height: 24),
+                      const Divider(height: 12),
                       _buildStatRow(
                         'Coins Earned',
                         '+$coins 🪙',
@@ -117,7 +135,7 @@ class ResultScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.s6),
+                const SizedBox(height: AppSpacing.s3),
 
                 if (mistakes.isNotEmpty) ...[
                   AppButton(
@@ -139,6 +157,7 @@ class ResultScreen extends StatelessWidget {
                 AppButton(
                   label: 'CONTINUE ➔',
                   onPressed: () {
+                    MusicManager.playSfx('button_tap.wav');
                     final profileProv = Provider.of<ProfileProvider>(
                       context,
                       listen: false,
@@ -159,11 +178,39 @@ class ResultScreen extends StatelessWidget {
                     );
                   },
                 ),
+
+                // Reward Claim Feature
+                if (stars == 3) ...[
+                  const SizedBox(height: AppSpacing.s4),
+                  _buildClaimRewardButton(context),
+                ],
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildClaimRewardButton(BuildContext context) {
+    final nextReward = RewardService.getNextAvailableReward();
+    if (nextReward == null) return const SizedBox.shrink();
+
+    return AppButton(
+      label: '🎁 CLAIM REWARD!',
+      variant: AppButtonVariant.reward,
+      onPressed: () {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => RewardClaimDialog(
+            reward: nextReward,
+            onClaimed: () async {
+              await RewardService.claimReward(nextReward.id);
+            },
+          ),
+        );
+      },
     );
   }
 

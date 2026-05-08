@@ -94,6 +94,10 @@ class _AgeSelectionScreenState extends State<AgeSelectionScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const Text(
+                              '🌈 🎨 🐣',
+                              style: TextStyle(fontSize: 16),
+                            ),
                           ],
                         ),
                       ),
@@ -149,6 +153,10 @@ class _AgeSelectionScreenState extends State<AgeSelectionScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const Text(
+                              '📚 ✏️ 🎒',
+                              style: TextStyle(fontSize: 16),
+                            ),
                           ],
                         ),
                       ),
@@ -203,6 +211,10 @@ class _AgeSelectionScreenState extends State<AgeSelectionScreen> {
                                 color: AppColors.neutral500,
                                 fontWeight: FontWeight.bold,
                               ),
+                            ),
+                            const Text(
+                              '🧠 🚀 🏆',
+                              style: TextStyle(fontSize: 16),
                             ),
                           ],
                         ),
